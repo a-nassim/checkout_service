@@ -5,8 +5,8 @@ defmodule CheckoutServiceTest do
   # Pricing rules — shape TBD when CheckoutService.Pricing.Rule is defined.
   # For now an empty list exercises the interface without any discounts.
   @pricing_rules [
-    Pricing.Rule.BuyXGetYFree.new!("GR1", 1, 1)
-    # :bulk_fixed, "SR1"
+    Pricing.Rule.BuyXGetYFree.new!("GR1", 1, 1),
+    Pricing.Rule.BulkUnitPrice.new!("SR1", 3, Money.new(:GBP, "4.50"), Money.new(:GBP, "5.00"))
     # :bulk_fraction, "CF1"
   ]
 
