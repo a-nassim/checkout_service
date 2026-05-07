@@ -138,7 +138,7 @@ defmodule CheckoutService.Pricing.CalculatorTest do
         ])
 
       rules = [
-        PercentageDiscount.new!("TS1", 2, {2, 3})
+        BulkFractionPrice.new!("TS1", 2, {2, 3})
       ]
 
       receipt = Calculator.calculate(cart(["TS1", "TS1"]), rules, catalog)

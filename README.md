@@ -4,7 +4,7 @@ An Elixir checkout service for supermarket pricing with configurable rules.
 
 ## Overview
 
-This project implements a cashier service that manages shopping carts, applies pricing rules, and computes final totals. It supports three types of pricing rules:
+This project implements a cashier service that manages shopping carts, applies pricing rules, and computes final totals. It supports three pricing rules:
 
 - **Buy X get Y free** — e.g. buy 1 get 1 free on green tea
 - **Bulk unit price** — e.g. strawberries drop to £4.50 when buying 3+
@@ -26,43 +26,47 @@ This project implements a cashier service that manages shopping carts, applies p
 
 The pricing engine is built around the `CheckoutService.Pricing.Rule` protocol. Each rule is evaluated per product and returns a `Discount` if it applies, or `nil` if it does not.
 
-**Key design decisions:**
+The key design choices are:
 
-- **Protocol-based extensibility** — New rule types can be added without touching existing code. Just define a struct and implement the `Rule` protocol.
+- **Protocol-based extensibility** — New rule types can be added without touching existing code. Define a struct and implement the `Rule` protocol.
+- **First-match semantics** — Rules are evaluated in the order passed to `CheckoutService.new/2`. Only the first matching rule per product applies, which keeps overlapping promotions predictable.
+- **Money arithmetic via `ex_money`** — Prices, discounts, subtotals, and totals use `Money.t()` values instead of floats. Fractional discounts use `Decimal` under the hood and totals are rounded to the currency precision.
 
-- **First-match semantics** — Rules are evaluated in the order they are passed to `CheckoutService.new/2`. Only the first matching rule per product fires. This makes the system predictable and easy to reason about.
+The checkout state is explicit as well: each session carries its cart, catalog, and pricing rules. That keeps the service free of global mutable state, easy to test, and ready for alternate catalogs or rule sets.
 
-- **Pattern matching for product targeting** — Rules use function head pattern matching on `product_code` to efficiently reject non-matching products without conditionals.
+Receipts expose line items, subtotal, discounts, and total so pricing decisions can be inspected after calculation.
 
-- **Validated constructors** — Every rule has both `new/n` (returns `{:ok, rule} | {:error, reason}`) and `new!/n` (raises `ArgumentError`). Misconfiguration fails loudly at startup.
-
-- **Money arithmetic via `ex_money`** — All prices and discounts are `Money.t()` structs, preventing floating-point errors. Fractional arithmetic uses `Decimal`.
+Rule constructors are validated and return either `{:ok, rule}` or `{:error, reason}`. The `new!/n` variants are convenient for startup-time configuration where invalid pricing rules should fail fast.
 
 ### Example
 
 ```elixir
+catalog = CheckoutService.Catalog.default()
+{:ok, %{price: sr1_price}} = CheckoutService.Catalog.get(catalog, "SR1")
+
 rules = [
   # Buy 1 get 1 free on green tea
   CheckoutService.Pricing.Rule.BuyXGetYFree.new!("GR1", 1, 1),
   # Strawberries drop to £4.50 when buying 3+
-  CheckoutService.Pricing.Rule.BulkUnitPrice.new!("SR1", 3, Money.new(:GBP, "4.50"), Money.new(:GBP, "5.00")),
+  CheckoutService.Pricing.Rule.BulkUnitPrice.new!("SR1", 3, Money.new(:GBP, "4.50"), sr1_price),
   # Coffee drops to 2/3 price when buying 3+
   CheckoutService.Pricing.Rule.BulkFractionPrice.new!("CF1", 3, {2, 3})
 ]
 
-checkout = CheckoutService.new(rules)
+checkout = CheckoutService.new(rules, catalog)
 
 checkout =
   checkout
   |> CheckoutService.scan!("GR1")
+  |> CheckoutService.scan!("CF1")
   |> CheckoutService.scan!("SR1")
-  |> CheckoutService.scan!("GR1")
+  |> CheckoutService.scan!("CF1")
   |> CheckoutService.scan!("CF1")
 
 receipt = CheckoutService.calculate(checkout)
 
 receipt.total
-# => #Money<:GBP, 19.66>
+# => #Money<:GBP, 30.57>
 
 receipt.discounts
 # => [%CheckoutService.Pricing.Discount{...}]
@@ -97,19 +101,52 @@ mix compile
 
 ### Development Commands
 
-| Command | Description |
-|---------|-------------|
-| `mix check` | Run all checks (credo, dialyzer, tests) |
-| `mix check --fix` | Auto-fix code style issues and formatting |
-| `mix test` | Run the test suite (also runs as part of `mix check`) |
-| `mix docs` | Generate documentation |
-| `mix dialyzer` | Run static type analysis |
-| `mix credo` | Run code quality checks |
+- `mix check` - Run formatting, Credo, Dialyzer, and the test suite.
+- `mix test` - Run the test suite directly.
+- `mix docs` - Generate documentation.
 
-### CI Pipeline
+## Testing
 
-The project uses GitHub Actions for CI. The workflow runs `mix check` which includes:
-- Code formatting verification
-- Credo (code quality)
-- Dialyzer (type analysis)
-- Test suite
+### Acceptance Tests
+
+The acceptance tests cover the four basket scenarios provided:
+
+| Basket | Expected Total |
+|--------|----------------|
+| GR1,SR1,GR1,GR1,CF1 | £22.45 |
+| GR1,GR1 | £3.11 |
+| SR1,SR1,GR1,SR1 | £16.61 |
+| GR1,CF1,SR1,CF1,CF1 | £30.57 |
+
+### Additional Coverage
+
+The test suite also covers:
+
+- Rule validation and discount behavior for each pricing rule.
+- Public checkout behavior such as scanning, unknown product handling, and empty baskets.
+- Receipt calculation details such as line items, subtotals, discounts, first-match rule application, and rounding.
+- Property tests for generated baskets, including non-negative totals, totals not exceeding subtotals, scan-order independence, and no-rule behavior.
+
+## Adding New Pricing Rules
+
+To add a new rule type:
+
+1. Create a new module in `lib/checkout_service/pricing/rule/`
+2. Define a struct with the required fields
+3. Implement the `CheckoutService.Pricing.Rule` protocol
+
+Example:
+
+```elixir
+defmodule CheckoutService.Pricing.Rule.MyNewRule do
+  @enforce_keys [:product_code, :threshold]
+  defstruct [:product_code, :threshold]
+
+  defimpl CheckoutService.Pricing.Rule do
+    def apply(rule, product, quantity) do
+      # Return %CheckoutService.Pricing.Discount{...} if rule applies
+      # Return nil otherwise
+    end
+  end
+end
+```
