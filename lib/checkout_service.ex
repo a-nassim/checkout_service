@@ -51,7 +51,7 @@ defmodule CheckoutService do
     # TODO: move to pricing engine
     total =
       checkout.cart.items
-      |> Enum.reduce(Money.zero(:GBP), fn {product_code, quantity}, sum ->
+      |> Enum.reduce(Money.zero(checkout.catalog.currency), fn {product_code, quantity}, sum ->
         {:ok, product} = Catalog.get(checkout.catalog, product_code)
 
         product.price

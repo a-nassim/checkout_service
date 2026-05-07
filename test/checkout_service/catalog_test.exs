@@ -4,22 +4,27 @@ defmodule CheckoutService.CatalogTest do
   alias CheckoutService.Catalog
   alias CheckoutService.Catalog.Product
 
-  describe "new/1" do
-    test "builds a catalog from a list of products" do
+  describe "new/2" do
+    test "builds a catalog from a currency and list of products" do
       product = %Product{code: "GR1", name: "Green tea", price: Money.new(:GBP, "3.11")}
-      catalog = Catalog.new([product])
+      {:ok, catalog} = Catalog.new(:GBP, [product])
       assert {:ok, ^product} = Catalog.get(catalog, "GR1")
     end
 
     test "accepts an empty list" do
-      catalog = Catalog.new([])
+      {:ok, catalog} = Catalog.new(:GBP, [])
       assert {:error, :not_found} = Catalog.get(catalog, "GR1")
+    end
+
+    test "returns error when a product currency does not match" do
+      product = %Product{code: "GR1", name: "Green tea", price: Money.new(:USD, "3.11")}
+      assert {:error, :currency_mismatch} = Catalog.new(:GBP, [product])
     end
 
     test "last entry wins when product codes are duplicated" do
       v1 = %Product{code: "GR1", name: "Green tea", price: Money.new(:GBP, "3.11")}
       v2 = %Product{code: "GR1", name: "Green tea v2", price: Money.new(:GBP, "4.00")}
-      catalog = Catalog.new([v1, v2])
+      {:ok, catalog} = Catalog.new(:GBP, [v1, v2])
       assert {:ok, ^v2} = Catalog.get(catalog, "GR1")
     end
   end
@@ -39,6 +44,10 @@ defmodule CheckoutService.CatalogTest do
   end
 
   describe "default/0" do
+    test "uses GBP as currency" do
+      assert Catalog.default().currency == :GBP
+    end
+
     test "contains GR1, SR1, and CF1 at the correct prices" do
       catalog = Catalog.default()
       gr1_price = Money.new(:GBP, "3.11")
