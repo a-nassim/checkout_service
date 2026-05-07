@@ -55,6 +55,21 @@ defmodule CheckoutService.Catalog do
     end
   end
 
+  @doc """
+  Looks up a product by code, raising if not found.
+
+  Use this when a missing product is a programming error — e.g. inside the
+  pricing calculator, where every code in the cart was already validated by
+  `scan/2`.
+  """
+  @spec fetch!(t(), Product.code()) :: Product.t()
+  def fetch!(%__MODULE__{} = catalog, code) do
+    case get(catalog, code) do
+      {:ok, product} -> product
+      {:error, :not_found} -> raise ArgumentError, "product #{inspect(code)} not found in catalog"
+    end
+  end
+
   @doc "Returns the standard catalog pre-loaded with the three known products."
   @spec default() :: t()
   def default do

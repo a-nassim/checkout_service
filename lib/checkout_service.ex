@@ -5,6 +5,7 @@ defmodule CheckoutService do
   alias CheckoutService.Catalog.Product
   alias CheckoutService.Checkout
   alias CheckoutService.Checkout.Receipt
+  alias CheckoutService.Pricing.Calculator
   alias CheckoutService.Pricing.Rule
 
   @doc """
@@ -48,17 +49,6 @@ defmodule CheckoutService do
   @doc "Applies pricing rules to the cart and returns an auditable `Receipt`."
   @spec calculate(Checkout.t()) :: Receipt.t()
   def calculate(%Checkout{} = checkout) do
-    # TODO: move to pricing engine
-    total =
-      checkout.cart.items
-      |> Enum.reduce(Money.zero(checkout.catalog.currency), fn {product_code, quantity}, sum ->
-        {:ok, product} = Catalog.get(checkout.catalog, product_code)
-
-        product.price
-        |> Money.mult!(quantity)
-        |> Money.add!(sum)
-      end)
-
-    %Receipt{total: total, subtotal: total, discounts: []}
+    Calculator.calculate(checkout.cart, checkout.rules, checkout.catalog)
   end
 end
