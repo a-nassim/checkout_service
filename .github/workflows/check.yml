@@ -1,0 +1,44 @@
+name: check
+
+on: [pull_request, push]
+
+jobs:
+  mix_check:
+    name: mix check
+
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Elixir
+        uses: erlef/setup-elixir@v1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - name: Cache deps and build
+        uses: actions/cache@v5
+        with:
+          path: |
+            deps
+            _build
+          key: deps-${{ runner.os }}-${{ hashFiles('.tool-versions') }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            deps-${{ runner.os }}-${{ hashFiles('.tool-versions') }}
+
+      - name: Fetch deps
+        run: mix deps.get --check-locked
+
+      - name: Remove application build
+        run: mix clean
+
+      - name: Compile deps
+        run: mix deps.compile
+
+      - name: Compile app
+        run: mix compile
+
+      - name: Run check
+        run: mix check
