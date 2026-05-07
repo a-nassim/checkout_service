@@ -1,18 +1,17 @@
 defmodule CheckoutService do
   @moduledoc """
-  Documentation for `CheckoutService`.
+  Public API for the checkout service.
   """
 
-  @doc """
-  Hello world.
+  def new(_pricing_rules) do
+    raise "not implemented"
+  end
 
-  ## Examples
+  def scan(_checkout, _product_code) do
+    raise "not implemented"
+  end
 
-      iex> CheckoutService.hello()
-      :world
-
-  """
-  def hello do
-    :world
+  def calculate(_checkout) do
+    raise "not implemented"
   end
 end
