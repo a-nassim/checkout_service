@@ -24,6 +24,7 @@ defmodule CheckoutService.MixProject do
   defp deps do
     [
       {:ex_money, "~> 5.24"},
+      {:decimal, "~> 3.0", override: true},
       {:stream_data, "~> 1.3", only: :test},
       {:ex_check, "~> 0.16.0", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
