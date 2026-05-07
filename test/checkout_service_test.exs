@@ -42,7 +42,7 @@ defmodule CheckoutServiceTest do
 
   describe "edge cases" do
     test "empty basket totals £0.00" do
-      assert total([]) == money("0.00")
+      assert Money.equal?(total([]), money("0.00"))
     end
 
     test "scan order does not affect the total" do

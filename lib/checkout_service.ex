@@ -17,28 +17,48 @@ defmodule CheckoutService do
       checkout = CheckoutService.new(rules, custom_catalog)
   """
   @spec new([Rule.t()], Catalog.t()) :: Checkout.t()
-  def new(_pricing_rules, _catalog \\ Catalog.default()) do
-    raise "not implemented"
+  def new(pricing_rules, catalog \\ Catalog.default()) do
+    %Checkout{rules: pricing_rules, catalog: catalog}
   end
 
   @doc "Scans a product into the checkout by its product code."
   @spec scan(Checkout.t(), Product.code()) ::
           {:ok, Checkout.t()} | {:error, :unknown_product}
-  def scan(_checkout, _product_code) do
-    raise "not implemented"
+  def scan(%Checkout{} = checkout, product_code) do
+    case Catalog.get(checkout.catalog, product_code) do
+      {:ok, product} ->
+        {:ok, checkout |> Map.update!(:cart, &Checkout.Cart.add(&1, product.code))}
+
+      {:error, :not_found} ->
+        {:error, :unknown_product}
+    end
   end
 
   @doc """
   Scans a product into the checkout by its product code, raising on unknown codes.
   """
   @spec scan!(Checkout.t(), Product.code()) :: Checkout.t()
-  def scan!(_checkout, _product_code) do
-    raise "not implemented"
+  def scan!(checkout, product_code) do
+    case scan(checkout, product_code) do
+      {:ok, checkout} -> checkout
+      {:error, reason} -> raise ArgumentError, "cannot scan product #{product_code}: #{reason}"
+    end
   end
 
   @doc "Applies pricing rules to the cart and returns an auditable `Receipt`."
   @spec calculate(Checkout.t()) :: Receipt.t()
-  def calculate(_checkout) do
-    raise "not implemented"
+  def calculate(%Checkout{} = checkout) do
+    # TODO: move to pricing engine
+    total =
+      checkout.cart.items
+      |> Enum.reduce(Money.zero(:GBP), fn {product_code, quantity}, sum ->
+        {:ok, product} = Catalog.get(checkout.catalog, product_code)
+
+        product.price
+        |> Money.mult!(quantity)
+        |> Money.add!(sum)
+      end)
+
+    %Receipt{total: total, subtotal: total, discounts: []}
   end
 end
