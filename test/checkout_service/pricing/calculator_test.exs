@@ -2,6 +2,7 @@ defmodule CheckoutService.Pricing.CalculatorTest do
   use ExUnit.Case, async: true
 
   alias CheckoutService.Catalog
+  alias CheckoutService.Catalog.Product
   alias CheckoutService.Checkout.Cart
   alias CheckoutService.Checkout.LineItem
   alias CheckoutService.Pricing
@@ -128,6 +129,22 @@ defmodule CheckoutService.Pricing.CalculatorTest do
       receipt = Calculator.calculate(cart(["GR1", "GR1"]), rules, Catalog.default())
       assert length(receipt.discounts) == 1
       assert %Pricing.Rule.BuyXGetYFree{} = Enum.at(receipt.discounts, 0).rule
+    end
+
+    test "total is rounded to the currency precision" do
+      {:ok, catalog} =
+        Catalog.new(:GBP, [
+          %Product{code: "TS1", name: "Test tea", price: money("10.00")}
+        ])
+
+      rules = [
+        PercentageDiscount.new!("TS1", 2, {2, 3})
+      ]
+
+      receipt = Calculator.calculate(cart(["TS1", "TS1"]), rules, catalog)
+
+      assert Money.equal?(receipt.subtotal, money("20.00"))
+      assert Money.equal?(receipt.total, money("13.33"))
     end
   end
 end

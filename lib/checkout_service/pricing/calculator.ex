@@ -36,7 +36,9 @@ defmodule CheckoutService.Pricing.Calculator do
         }
       end)
 
-    total = Enum.reduce(discounts, subtotal, fn d, acc -> Money.sub!(acc, d.amount) end)
+    total =
+      Enum.reduce(discounts, subtotal, fn d, acc -> Money.sub!(acc, d.amount) end)
+      |> Money.round()
 
     %Receipt{
       line_items: Enum.reverse(line_items),
