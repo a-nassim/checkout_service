@@ -2,19 +2,21 @@ defmodule CheckoutService.Checkout.Receipt do
   @moduledoc """
   The auditable result of `CheckoutService.calculate/1`.
 
-  Contains the final `total`, the gross `subtotal` before discounts, and the
-  list of `Discount`s that were applied.
+  Contains the final `total`, the gross `subtotal` before discounts, the
+  `line_items` showing what was bought, and the `discounts` that were applied.
   """
 
+  alias CheckoutService.Checkout.LineItem
   alias CheckoutService.Pricing.Discount
 
   @typedoc "The auditable result of a checkout calculation."
   @type t :: %__MODULE__{
-          total: Money.t(),
+          line_items: [LineItem.t()],
           subtotal: Money.t(),
-          discounts: [Discount.t()]
+          discounts: [Discount.t()],
+          total: Money.t()
         }
 
-  @enforce_keys [:total, :subtotal, :discounts]
-  defstruct [:total, :subtotal, :discounts]
+  @enforce_keys [:line_items, :subtotal, :discounts, :total]
+  defstruct [:line_items, :subtotal, :discounts, :total]
 end
