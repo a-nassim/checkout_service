@@ -16,7 +16,7 @@ defmodule CheckoutServiceTest do
 
     checkout =
       Enum.reduce(product_codes, checkout, fn code, co ->
-        CheckoutService.scan(co, code)
+        CheckoutService.scan!(co, code)
       end)
 
     CheckoutService.calculate(checkout).total
@@ -53,12 +53,22 @@ defmodule CheckoutServiceTest do
     test "no pricing rules applies full prices" do
       receipt =
         CheckoutService.new([])
-        |> CheckoutService.scan("GR1")
-        |> CheckoutService.scan("GR1")
+        |> CheckoutService.scan!("GR1")
+        |> CheckoutService.scan!("GR1")
         |> CheckoutService.calculate()
 
       assert receipt.total == money("6.22")
       assert receipt.discounts == []
+    end
+
+    test "scan/2 returns error for unknown product code" do
+      checkout = CheckoutService.new([])
+      assert {:error, :unknown_product} = CheckoutService.scan(checkout, "UNKNOWN")
+    end
+
+    test "scan!/2 raises for unknown product code" do
+      checkout = CheckoutService.new([])
+      assert_raise ArgumentError, fn -> CheckoutService.scan!(checkout, "UNKNOWN") end
     end
   end
 end

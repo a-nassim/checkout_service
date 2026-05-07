@@ -22,8 +22,17 @@ defmodule CheckoutService do
   end
 
   @doc "Scans a product into the checkout by its product code."
-  @spec scan(Checkout.t(), Product.code()) :: Checkout.t()
+  @spec scan(Checkout.t(), Product.code()) ::
+          {:ok, Checkout.t()} | {:error, :unknown_product}
   def scan(_checkout, _product_code) do
+    raise "not implemented"
+  end
+
+  @doc """
+  Scans a product into the checkout by its product code, raising on unknown codes.
+  """
+  @spec scan!(Checkout.t(), Product.code()) :: Checkout.t()
+  def scan!(_checkout, _product_code) do
     raise "not implemented"
   end
 
