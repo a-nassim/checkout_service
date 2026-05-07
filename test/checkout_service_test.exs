@@ -2,12 +2,11 @@ defmodule CheckoutServiceTest do
   use ExUnit.Case
 
   alias CheckoutService.Pricing
-  # Pricing rules — shape TBD when CheckoutService.Pricing.Rule is defined.
-  # For now an empty list exercises the interface without any discounts.
+
   @pricing_rules [
     Pricing.Rule.BuyXGetYFree.new!("GR1", 1, 1),
-    Pricing.Rule.BulkUnitPrice.new!("SR1", 3, Money.new(:GBP, "4.50"), Money.new(:GBP, "5.00"))
-    # :bulk_fraction, "CF1"
+    Pricing.Rule.BulkUnitPrice.new!("SR1", 3, Money.new(:GBP, "4.50"), Money.new(:GBP, "5.00")),
+    Pricing.Rule.BulkFractionPrice.new!("CF1", 3, {2, 3})
   ]
 
   defp money(amount), do: Money.new(:GBP, amount)
@@ -37,7 +36,7 @@ defmodule CheckoutServiceTest do
     end
 
     test "GR1,CF1,SR1,CF1,CF1 → £30.57 (bulk coffee)" do
-      assert total(["GR1", "CF1", "SR1", "CF1", "CF1"]) == money("30.57")
+      assert Money.equal?(total(["GR1", "CF1", "SR1", "CF1", "CF1"]), money("30.57"))
     end
   end
 
