@@ -7,7 +7,8 @@ defmodule CheckoutService.MixProject do
       version: "0.1.0",
       elixir: "~> 1.19",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      docs: docs()
     ]
   end
 
@@ -28,6 +29,16 @@ defmodule CheckoutService.MixProject do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false, warn_if_outdated: true}
+    ]
+  end
+
+  defp docs do
+    [
+      main: "readme",
+      extras: ["README.md"],
+      source_ref: "main",
+      source_url: "https://github.com/a-nassim/checkout_service",
+      homepage_url: "https://a-nassim.github.io/checkout_service/"
     ]
   end
 end

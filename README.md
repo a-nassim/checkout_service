@@ -2,6 +2,8 @@
 
 An Elixir checkout service for supermarket pricing with configurable rules.
 
+[Documentation](https://a-nassim.github.io/checkout_service/)
+
 ## Overview
 
 This project implements a cashier service that manages shopping carts, applies pricing rules, and computes final totals. It supports three pricing rules:
