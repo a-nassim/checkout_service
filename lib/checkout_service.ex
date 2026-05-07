@@ -46,6 +46,33 @@ defmodule CheckoutService do
     end
   end
 
+  @doc "Removes one unit of a product from the checkout by its product code."
+  @spec remove(Checkout.t(), Product.code()) ::
+          {:ok, Checkout.t()} | {:error, :not_in_cart}
+  def remove(%Checkout{} = checkout, product_code) do
+    case Checkout.Cart.remove(checkout.cart, product_code) do
+      {:ok, cart} -> {:ok, %{checkout | cart: cart}}
+      {:error, :not_in_cart} -> {:error, :not_in_cart}
+    end
+  end
+
+  @doc """
+  Removes one unit of a product from the checkout, raising on unknown codes.
+  """
+  @spec remove!(Checkout.t(), Product.code()) :: Checkout.t()
+  def remove!(checkout, product_code) do
+    case remove(checkout, product_code) do
+      {:ok, checkout} -> checkout
+      {:error, reason} -> raise ArgumentError, "cannot remove product #{product_code}: #{reason}"
+    end
+  end
+
+  @doc "Clears all scanned products from the checkout cart."
+  @spec clear(Checkout.t()) :: Checkout.t()
+  def clear(%Checkout{} = checkout) do
+    %{checkout | cart: Checkout.Cart.clear(checkout.cart)}
+  end
+
   @doc "Applies pricing rules to the cart and returns an auditable `Receipt`."
   @spec calculate(Checkout.t()) :: Receipt.t()
   def calculate(%Checkout{} = checkout) do

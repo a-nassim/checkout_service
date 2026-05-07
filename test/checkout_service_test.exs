@@ -70,5 +70,50 @@ defmodule CheckoutServiceTest do
       checkout = CheckoutService.new([])
       assert_raise ArgumentError, fn -> CheckoutService.scan!(checkout, "UNKNOWN") end
     end
+
+    test "remove/2 removes one scanned product and recalculates discounts" do
+      checkout =
+        CheckoutService.new(@pricing_rules)
+        |> CheckoutService.scan!("GR1")
+        |> CheckoutService.scan!("GR1")
+        |> CheckoutService.scan!("GR1")
+        |> CheckoutService.remove!("GR1")
+
+      receipt = CheckoutService.calculate(checkout)
+
+      assert receipt.total == money("3.11")
+      assert [%{quantity: 2}] = receipt.line_items
+    end
+
+    test "remove/2 returns error when the product was not scanned" do
+      checkout =
+        CheckoutService.new([])
+        |> CheckoutService.scan!("GR1")
+
+      assert CheckoutService.remove(checkout, "SR1") == {:error, :not_in_cart}
+    end
+
+    test "remove/2 returns not in cart for unknown product code" do
+      checkout = CheckoutService.new([])
+      assert CheckoutService.remove(checkout, "UNKNOWN") == {:error, :not_in_cart}
+    end
+
+    test "remove!/2 raises when product is not in the cart" do
+      checkout = CheckoutService.new([])
+      assert_raise ArgumentError, fn -> CheckoutService.remove!(checkout, "UNKNOWN") end
+    end
+
+    test "clear/1 empties the checkout cart" do
+      receipt =
+        CheckoutService.new(@pricing_rules)
+        |> CheckoutService.scan!("GR1")
+        |> CheckoutService.scan!("SR1")
+        |> CheckoutService.clear()
+        |> CheckoutService.calculate()
+
+      assert receipt.total == money("0.00")
+      assert receipt.line_items == []
+      assert receipt.discounts == []
+    end
   end
 end
