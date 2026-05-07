@@ -1,10 +1,11 @@
 defmodule CheckoutServiceTest do
   use ExUnit.Case
 
+  alias CheckoutService.Pricing
   # Pricing rules — shape TBD when CheckoutService.Pricing.Rule is defined.
   # For now an empty list exercises the interface without any discounts.
   @pricing_rules [
-    # :bogo, "GR1"
+    Pricing.Rule.BuyXGetYFree.new!("GR1", 1, 1)
     # :bulk_fixed, "SR1"
     # :bulk_fraction, "CF1"
   ]
